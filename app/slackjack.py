@@ -20,6 +20,6 @@ bet = query("How much would you like to bet?")
 if not bet.isdigit():
     error("{} is an invalid")
 
-player = Player(name, bet)
+player = Player(name, bet, info)
 
 game = Game([player])
