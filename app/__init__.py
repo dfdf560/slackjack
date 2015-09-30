@@ -1,1 +1,1 @@
-__author__ = 'hasham'
+from game import Game, Move, Player

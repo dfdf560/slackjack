@@ -6,6 +6,16 @@ import uuid
 
 class Move(object):
 
+    @classmethod
+    def from_raw(cls, raw_move, player, game):
+        parsed_raw_move = str(raw_move).lower()
+        if (parsed_raw_move == 'h') or (parsed_raw_move == 'hit'):
+            return HitMove(player, game)
+        elif (parsed_raw_move == 's') or (parsed_raw_move == 'stand'):
+            return StandMove(player, game)
+        else:
+            raise GameException("invalid move.")
+
     def __init__(self, player, game):
         self._player = player
         self._game = game
@@ -21,11 +31,16 @@ class Move(object):
     def player(self):
         return self._player
 
+    @property
+    def game(self):
+        return self._game
+
 
 class HitMove(Move):
 
     def _do(self):
         hand = self._game.deal()
+        self._player.deal_cards(hand)
         self.player.notify("{} was dealt {}.".format(self._player.identifier, hand[0]))
         if not self._player.keep_turn():
             self._game.increment_active_player_index()
@@ -54,13 +69,16 @@ class Game(object):
         return cls(str(uuid.uuid4().hex), players)
 
     @classmethod
-    def move(cls, game_id, player, move):
+    def move(cls, move):
+        game_id = move.game.identifier
         if game_id not in cls._GAMES:
             raise GameException("no active game {}".format(game_id))
 
-        game = cls._GAMES.get(game_id)
-        move(player, game)
         move.do()
+
+    @property
+    def identifier(self):
+        return self._game_id
 
     def __init__(self, game_id, players):
         self._game_id = game_id
@@ -87,8 +105,9 @@ class Game(object):
 
     def game_loop(self):
         if self._active_player_index >= len(self._players):
-            while self._house.get_score() < 17:
+            if self._house.get_score() < 17:
                 HitMove(self._house, self).do()
+            else:
                 self.tally()
         else:
             player = self._players[self._active_player_index]
@@ -103,12 +122,19 @@ class Game(object):
     def tally(self):
         for player in self._players:
             score = player.get_score()
-            winnings = player.get_winnings(score)
+            winnings = player.get_winnings(score, self._house.get_score())
             self.notify("{} got a score of {} and won {}!".format(player.identifier, score, winnings))
 
     def notify(self, message):
         for player in self._players:
             player.notify(message)
+
+    def can_make_move(self, player):
+        try:
+            player_index = self._players.index(player)
+            return (player_index == self._active_player_index) and player.keep_turn()
+        except IndexError:
+            return False
 
 
 class Participant(object):
@@ -122,12 +148,18 @@ class Participant(object):
         self._hand = []
 
     def deal_cards(self, cards):
-        self._hand.append(cards)
+        self._hand += cards
 
     def get_score(self):
         score = 0
         for card in self._hand:
-            score += Card.process_card(card, score)
+            best_score = None
+            for i in xrange(card.variations):
+                card_score = Card.process_card(card, i)
+                if not best_score or (best_score < score + card_score <= 21):
+                    best_score = score + card_score
+
+            score = best_score
 
         return score
 
@@ -161,7 +193,7 @@ class Player(Participant):
 
     def __init__(self, identifier, bet, callback=None):
         super(Player, self).__init__(identifier)
-        self._bet = bet
+        self._bet = int(bet)
         self._callback = callback
 
     def notify(self, message):

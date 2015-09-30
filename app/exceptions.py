@@ -1,3 +1,7 @@
+class CardException(Exception):
+    pass
+
+
 class StatefulObjectException(Exception):
     pass
 

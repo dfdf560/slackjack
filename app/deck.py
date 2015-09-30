@@ -1,70 +1,45 @@
 from random import shuffle
 
 
-class CardException(Exception):
-    pass
-
-
 class Card(object):
+
+    @property
+    def variations(self):
+        return len(self._values)
 
     def __init__(self, name, suit, values):
         self._name = name
         self._suit = suit
         self._values = values
 
-    def use(self, play=None):
-        raise NotImplemented
+    def use(self, index):
+        return self._values[index]
 
     @staticmethod
-    def process_card(card, score):
-        if isinstance(card, AceCard):
-            if score + 11 > 21:
-                return card.use(11)
-            else:
-                return card.use(1)
-        else:
-            return card.use()
+    def process_card(card, index):
+        return card.use(index)
 
     def __repr__(self):
         return "{} of {}".format(self._name, self._suit)
 
 
-class StandardCard(Card):
-
-    def use(self, play=None):
-        return self._values[0]
-
-
-class AceCard(Card):
-
-    def use(self, play=None):
-        if play and play in self._values:
-            return play
-        else:
-            raise CardException("illegal card use: {} is not a valid play for an Ace.".format(play))
-
-
 class CardTypes(object):
 
-    ACE = "Ace", AceCard, [1, 11]
-    TWO = "Two", StandardCard, [2]
-    THREE = "Three", StandardCard, [3]
-    FOUR = "Four", StandardCard, [4]
-    FIVE = "Five", StandardCard, [5]
-    SIX = "Six", StandardCard, [6]
-    SEVEN = "Seven", StandardCard, [7]
-    EIGHT = "Eight", StandardCard, [8]
-    NINE = "Nine", StandardCard, [9]
-    TEN = "Ten", StandardCard, [10]
-    JACK = "Jack", StandardCard, [10]
-    QUEEN = "Queen", StandardCard, [10]
-    KING = "King", StandardCard, [10]
+    ACE = "Ace", Card, [1, 11]
+    TWO = "2", Card, [2]
+    THREE = "3", Card, [3]
+    FOUR = "4", Card, [4]
+    FIVE = "5", Card, [5]
+    SIX = "6", Card, [6]
+    SEVEN = "7", Card, [7]
+    EIGHT = "8", Card, [8]
+    NINE = "9", Card, [9]
+    TEN = "10", Card, [10]
+    JACK = "Jack", Card, [10]
+    QUEEN = "Queen", Card, [10]
+    KING = "King", Card, [10]
 
     ALL = [ACE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING]
-
-    _TYPE_MAP = {
-        ACE: AceCard,
-    }
 
 
 class SuitTypes(object):
@@ -81,7 +56,7 @@ class Deck(object):
 
     def __init__(self, decks=1):
         self._cards = []
-        for x in xrange(1, decks):
+        for x in xrange(0, decks):
             self.generate()
 
         self.shuffle()
